@@ -1,5 +1,5 @@
-import { GLError } from "./gl.js";
-import { cancelManagedAnimationFrame, runOnManagedAnimationFrame } from "./ManagedAnimationFrames.js";
+import { GLError } from "./utils/gl.js";
+import { cancelManagedAnimationFrame, runOnManagedAnimationFrame } from "./utils/ManagedAnimationFrames.js";
 
 export class Renderer {
   #canvas: HTMLCanvasElement;
@@ -33,6 +33,11 @@ export class Renderer {
   }
 
   #render = () => {
+    this.#updateCanvasSize();
+    this.#gl.clear(this.#gl.COLOR_BUFFER_BIT | this.#gl.DEPTH_BUFFER_BIT);
+  };
+
+  #updateCanvasSize(): void {
     const width = this.#canvas.clientWidth;
     const height = this.#canvas.clientHeight;
 
@@ -44,8 +49,7 @@ export class Renderer {
       this.#gl.viewport(0, 0, width, height);
 
       // Update perspective projection matrix
+      // TODO
     }
-
-    this.#gl.clear(this.#gl.COLOR_BUFFER_BIT | this.#gl.DEPTH_BUFFER_BIT);
-  };
+  }
 }

@@ -1,4 +1,4 @@
-import { managedAnimationFrameMetrics } from "./ManagedAnimationFrames.js";
+import { managedAnimationFrameMetrics } from "./utils/ManagedAnimationFrames.js";
 import { Renderer } from "./render.js";
 
 function mustGetElement<T extends HTMLElement>(id: string): T {

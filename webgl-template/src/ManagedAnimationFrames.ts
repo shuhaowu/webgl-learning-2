@@ -1,25 +1,26 @@
 export type RenderFunc = (dt: number) => void;
 
-export type RenderFuncOptions = {
+export type RenderOptions = {
   /**
-   * The actual callback to be called each animation frame.
+   * The target FPS. If animation frame is faster, it will be slowed down. If
+   * not specified, then there's no limit other than the animation frame.
+   */
+  fps?: number;
+};
+
+type RenderObject = {
+  /**
+   * The actual callback to run.
    */
   callback: RenderFunc;
 
-  /**
-   * The target FPS. If animation frame is faster, it will be slowed down.
-   */
-  fps: number;
-};
-
-type RenderObject = RenderFuncOptions & {
   /**
    * Calculated from FPS to avoid calculating it over and over.
    */
   msPerFrame: number;
 
   /**
-   * The last frame's timestamp in ms for this callback
+   * The last frame's timestamp in ms for this callback.
    */
   lastFrameTime: number;
 };
@@ -72,7 +73,7 @@ const _metrics: ManagedAnimationFrameMetrics = {
   callbackDurations: new Map(),
 };
 
-export function runOnManagedAnimationFrame({ callback, fps }: Readonly<RenderFuncOptions>): void {
+export function runOnManagedAnimationFrame(callback: RenderFunc, { fps }: Readonly<RenderOptions> = {}): void {
   if (renderObjects.has(callback)) {
     console.warn("render callback already running, please cancel it first before making changes");
     return;
@@ -80,8 +81,7 @@ export function runOnManagedAnimationFrame({ callback, fps }: Readonly<RenderFun
 
   const renderObject: RenderObject = {
     callback,
-    fps,
-    msPerFrame: 1000 / fps,
+    msPerFrame: fps ? 1000 / fps : 0,
     lastFrameTime: performance.now(),
   };
 
@@ -108,7 +108,9 @@ export function cancelManagedAnimationFrame(callback: RenderFunc): void {
   }
 }
 
-export function metrics(): Readonly<Omit<ManagedAnimationFrameMetrics, "frameAllCallbacksDuration">> {
+export function managedAnimationFrameMetrics(): Readonly<
+  Omit<ManagedAnimationFrameMetrics, "frameAllCallbacksDuration">
+> {
   return _metrics;
 }
 
@@ -123,7 +125,7 @@ function render() {
 
   for (const renderObject of renderObjects.values()) {
     const deltaTimeMs = now - renderObject.lastFrameTime;
-    if (deltaTimeMs <= renderObject.msPerFrame) {
+    if (renderObject.msPerFrame > 0 && deltaTimeMs <= renderObject.msPerFrame) {
       continue;
     }
 

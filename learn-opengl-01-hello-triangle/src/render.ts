@@ -3,10 +3,12 @@ import { cancelManagedAnimationFrame, runOnManagedAnimationFrame } from "./utils
 
 import vertexShaderSrc from "./shaders/vertex.glsl?raw";
 import fragmentShaderSrc from "./shaders/fragment.glsl?raw";
+import fragmentShader2Src from "./shaders/fragment2.glsl?raw";
 
 type TriangleModel = {
   vao: WebGLVertexArrayObject;
-  buffer: WebGLBuffer;
+  vertexBuffer: WebGLBuffer;
+  indexBuffer: WebGLBuffer;
   vertexCount: number;
 };
 
@@ -19,7 +21,9 @@ export class Renderer {
   #gl: WebGL2RenderingContext;
 
   #triangleProgram: TriangleProgramInfo;
+  #triangleProgram2: TriangleProgramInfo;
   #triangleModel: TriangleModel;
+  #triangleModel2: TriangleModel;
 
   constructor(canvas: HTMLCanvasElement) {
     this.#canvas = canvas;
@@ -39,8 +43,53 @@ export class Renderer {
       value: "Renderer.render",
     });
 
-    this.#triangleProgram = this.#createTriangleProgram();
-    this.#triangleModel = this.#prepareTriangle(this.#triangleProgram);
+    this.#triangleProgram = linkShaderProgram<TriangleProgramAttributeNames, TriangleProgramUniformNames>(
+      this.#gl,
+      createShader(this.#gl, this.#gl.VERTEX_SHADER, vertexShaderSrc),
+      createShader(this.#gl, this.#gl.FRAGMENT_SHADER, fragmentShaderSrc),
+      ["aPosition"],
+      [],
+    );
+
+    this.#triangleProgram2 = linkShaderProgram<TriangleProgramAttributeNames, TriangleProgramUniformNames>(
+      this.#gl,
+      createShader(this.#gl, this.#gl.VERTEX_SHADER, vertexShaderSrc),
+      createShader(this.#gl, this.#gl.FRAGMENT_SHADER, fragmentShader2Src),
+      ["aPosition"],
+      [],
+    );
+
+    this.#triangleModel = this.#prepareTriangle(
+      this.#triangleProgram,
+      // biome-ignore format:
+      new Float32Array([
+        0.5, 0.5, 0, // top right
+        0.5, 0.2, 0, // bottom right
+        0.2, 0.2, 0, // bottom left
+        0.2, 0.5, 0, // top left
+      ]),
+      // biome-ignore format:
+      new Uint16Array([
+        0, 1, 3, // first triangle
+        1, 2, 3, // second triangle
+      ]),
+    );
+
+    this.#triangleModel2 = this.#prepareTriangle(
+      this.#triangleProgram,
+      // biome-ignore format:
+      new Float32Array([
+        -0.2, -0.2, 0, // top right
+        -0.2, -0.5, 0, // bottom right
+        -0.5, -0.5, 0, // bottom left
+        -0.5, -0.2, 0, // top left
+      ]),
+      // biome-ignore format:
+      new Uint16Array([
+        0, 1, 3, // first triangle
+        1, 2, 3, // second triangle
+      ]),
+    );
   }
 
   start(): void {
@@ -51,24 +100,7 @@ export class Renderer {
     cancelManagedAnimationFrame(this.#render);
   }
 
-  #createTriangleProgram(): TriangleProgramInfo {
-    return linkShaderProgram<TriangleProgramAttributeNames, TriangleProgramUniformNames>(
-      this.#gl,
-      createShader(this.#gl, this.#gl.VERTEX_SHADER, vertexShaderSrc),
-      createShader(this.#gl, this.#gl.FRAGMENT_SHADER, fragmentShaderSrc),
-      ["aPosition"],
-      [],
-    );
-  }
-
-  #prepareTriangle(program: TriangleProgramInfo): TriangleModel {
-    // biome-ignore format:
-    const vertices = new Float32Array([
-      -0.5, -0.5, 0,
-       0.5, -0.5, 0,
-       0.0,  0.5, 0,
-    ]);
-
+  #prepareTriangle(program: TriangleProgramInfo, vertices: Float32Array, indices: Uint16Array): TriangleModel {
     const vao = this.#gl.createVertexArray();
     if (vao == null) {
       throw new GLError("cannot create vao");
@@ -76,7 +108,12 @@ export class Renderer {
 
     const vertexBuffer = this.#gl.createBuffer();
     if (vertexBuffer == null) {
-      throw new GLError("cannot create buffer");
+      throw new GLError("cannot create vertex buffer");
+    }
+
+    const indexBuffer = this.#gl.createBuffer();
+    if (indexBuffer == null) {
+      throw new GLError("cannot create index buffer");
     }
 
     this.#gl.bindVertexArray(vao);
@@ -84,16 +121,25 @@ export class Renderer {
     this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, vertexBuffer);
     this.#gl.bufferData(this.#gl.ARRAY_BUFFER, vertices, this.#gl.STATIC_DRAW);
 
+    this.#gl.bindBuffer(this.#gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    this.#gl.bufferData(this.#gl.ELEMENT_ARRAY_BUFFER, indices, this.#gl.STATIC_DRAW);
+
     this.#gl.vertexAttribPointer(program.attributes.aPosition, 3, this.#gl.FLOAT, false, 0, 0);
     this.#gl.enableVertexAttribArray(program.attributes.aPosition);
 
-    this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, null);
     this.#gl.bindVertexArray(null);
+
+    // Binding ELEMENT_ARRAY_BUFFER to null will be recorded by the VAO but
+    // binding ARRAY_BUFFER to null will not? So let's unbind them after we
+    // unbind the VAO?
+    this.#gl.bindBuffer(this.#gl.ELEMENT_ARRAY_BUFFER, null);
+    this.#gl.bindBuffer(this.#gl.ARRAY_BUFFER, null);
 
     return {
       vao,
-      buffer: vertexBuffer,
-      vertexCount: vertices.length / 3,
+      vertexBuffer,
+      indexBuffer,
+      vertexCount: indices.length,
     };
   }
 
@@ -103,7 +149,13 @@ export class Renderer {
 
     this.#gl.useProgram(this.#triangleProgram.program);
     this.#gl.bindVertexArray(this.#triangleModel.vao);
-    this.#gl.drawArrays(this.#gl.TRIANGLES, 0, this.#triangleModel.vertexCount);
+    this.#gl.drawElements(this.#gl.TRIANGLES, this.#triangleModel.vertexCount, this.#gl.UNSIGNED_SHORT, 0);
+    this.#gl.bindVertexArray(null);
+    this.#gl.useProgram(null);
+
+    this.#gl.useProgram(this.#triangleProgram2.program);
+    this.#gl.bindVertexArray(this.#triangleModel2.vao);
+    this.#gl.drawElements(this.#gl.TRIANGLES, this.#triangleModel2.vertexCount, this.#gl.UNSIGNED_SHORT, 0);
     this.#gl.bindVertexArray(null);
     this.#gl.useProgram(null);
   };

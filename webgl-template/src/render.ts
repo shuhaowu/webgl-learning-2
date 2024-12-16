@@ -18,6 +18,11 @@ export class Renderer {
     this.#gl.clearColor(0.0, 0.0, 0.0, 1.0);
     this.#gl.enable(gl.DEPTH_TEST);
 
+    // WebGL expects texture coordinate system origin to be at the bottom left.
+    // When loading from an HTMLImageElement, the image data is origin'ed on
+    // the top left. This flips the Y axis and makes it behave correctly.
+    this.#gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
     // For managed animation frame rendering.
     Object.defineProperty(this.#render, "name", {
       value: "Renderer.render",

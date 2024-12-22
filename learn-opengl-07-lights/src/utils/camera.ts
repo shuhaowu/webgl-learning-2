@@ -243,7 +243,5 @@ export class CameraControllerFPS {
     if (this.#camera.fov < 5) {
       this.#camera.fov = 5;
     }
-
-    console.log(this.#camera.fov);
   };
 }

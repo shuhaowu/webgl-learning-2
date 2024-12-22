@@ -8,13 +8,17 @@ in vec2 aUV;
 uniform mat4 uProjectionMatrix;
 uniform mat4 uCameraMatrix;
 uniform mat4 uModelMatrix;
+uniform mat3 uNormalMatrix;
 
 out vec3 vNormal;
 out vec2 vUV;
+out vec3 vFragPosition;
 
 void main() {
-  gl_Position = uProjectionMatrix * uCameraMatrix * uModelMatrix * vec4(aPosition, 1.0);
+  vec4 fragPosition = uModelMatrix * vec4(aPosition, 1.0);
+  gl_Position = uProjectionMatrix * uCameraMatrix * fragPosition;
 
-  vNormal = aNormal;
+  vNormal = normalize(uNormalMatrix * aNormal);
   vUV = aUV;
+  vFragPosition = vec3(fragPosition);
 }

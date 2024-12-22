@@ -12,9 +12,14 @@ const __uniformNames = [
   "uProjectionMatrix",
   "uCameraMatrix",
   "uModelMatrix",
+  "uNormalMatrix",
   "uTexture",
   "uLightAmbientStrength",
-  "uLightAmbientColor",
+  "uLightColor",
+  "uLightPosition",
+  "uLightSpecularStrength",
+  "uCameraPosition",
+  "uMaterialShininess",
 ] as const;
 export type UniformNameTexturedTriangles = (typeof __uniformNames)[number];
 export const UNIFORM_NAMES: ReadonlyArray<UniformNameTexturedTriangles> = __uniformNames;

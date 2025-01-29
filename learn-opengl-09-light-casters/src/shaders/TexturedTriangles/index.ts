@@ -21,6 +21,13 @@ const __uniformNames = [
   "uMaterial.shininess",
   "uMaterial.texture",
   "uMaterial.specular",
+  "uPointLight.position",
+  "uPointLight.ambient",
+  "uPointLight.diffuse",
+  "uPointLight.specular",
+  "uPointLight.constant",
+  "uPointLight.linear",
+  "uPointLight.quadratic",
 ] as const;
 export type UniformNameTexturedTriangles = (typeof __uniformNames)[number];
 export const UNIFORM_NAMES: ReadonlyArray<UniformNameTexturedTriangles> = __uniformNames;

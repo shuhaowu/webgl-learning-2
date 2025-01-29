@@ -185,6 +185,15 @@ export class Renderer {
     this.#gl.uniform3f(this.#triangleProgram.uniforms["uLight.specular"], 1.0, 1.0, 1.0);
 
     this.#gl.uniform3fv(this.#triangleProgram.uniforms["uLight.direction"], this.#directionalLight.direction);
+
+    this.#gl.uniform3f(this.#triangleProgram.uniforms["uPointLight.ambient"], 0.2, 0.2, 0.2);
+    this.#gl.uniform3f(this.#triangleProgram.uniforms["uPointLight.diffuse"], 0.5, 0.5, 0.5);
+    this.#gl.uniform3f(this.#triangleProgram.uniforms["uPointLight.specular"], 1.0, 1.0, 1.0);
+    this.#gl.uniform3f(this.#triangleProgram.uniforms["uPointLight.position"], 0, 0.0, 0.0);
+    this.#gl.uniform1f(this.#triangleProgram.uniforms["uPointLight.constant"], 1.0);
+    this.#gl.uniform1f(this.#triangleProgram.uniforms["uPointLight.linear"], 0.09);
+    this.#gl.uniform1f(this.#triangleProgram.uniforms["uPointLight.quadratic"], 0.032);
+
     this.#gl.uniform3fv(this.#triangleProgram.uniforms.uCameraPosition, this.#camera.position);
 
     this.#gl.uniform1i(this.#triangleProgram.uniforms["uMaterial.texture"], 0);
